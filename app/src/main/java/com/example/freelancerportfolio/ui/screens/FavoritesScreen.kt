@@ -7,26 +7,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
+import com.example.freelancerportfolio.data.FreelancerProfile
 import com.example.freelancerportfolio.data.FreelancerViewModel
 import com.example.freelancerportfolio.ui.components.FreelancerCard
 
 @Composable
 fun FavoritesScreen(
     viewModel: FreelancerViewModel,
-    onProfileClick: (Int) -> Unit // Ensure this parameter is included
+    onProfileClick: (FreelancerProfile) -> Unit // Ensure this parameter is included
 ) {
     // Observe favorite freelancers list from ViewModel
-    val favorites by viewModel.favoriteFreelancers.observeAsState(emptyList())
+    val favorites by viewModel.favoriteFreelancerProfiles.observeAsState(emptyList()) // Updated property
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         items(favorites) { freelancer ->
+            // Pass the entire freelancer profile to FreelancerCard
             FreelancerCard(
-                imagePath = freelancer.profilePicture ?: "",
-                name = freelancer.name,
-                description = freelancer.summary,
-                onProfileClick = { onProfileClick(freelancer.id) } // Pass onProfileClick correctly
+                freelancer = freelancer,  // Pass the entire FreelancerProfile object
+                onProfileClick = { onProfileClick(freelancer) } // Pass the profile on click
             )
         }
     }
 }
-

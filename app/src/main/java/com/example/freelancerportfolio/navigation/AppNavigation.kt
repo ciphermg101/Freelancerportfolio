@@ -5,7 +5,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -23,7 +22,6 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector,
     object Home : Screen("home", "Home", Icons.Filled.Home, Icons.Outlined.Home)
     object Favorites : Screen("favorites", "Favorites", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder)
     object Form : Screen("form", "Add", Icons.Filled.Add, Icons.Filled.Add)
-    object Profile : Screen("profile", "Profile", Icons.Filled.Person, Icons.Outlined.Person)
 }
 
 @Composable
@@ -32,7 +30,7 @@ fun AppNavigation(viewModel: FreelancerViewModel) {
 
     Scaffold(
         bottomBar = {
-            BottomNavBar(navController = navController)
+            BottomNavBar(navController = navController) // Ensure navController is passed to BottomNavBar
         }
     ) { innerPadding ->
         NavHost(
@@ -43,7 +41,8 @@ fun AppNavigation(viewModel: FreelancerViewModel) {
             composable(Screen.Home.route) {
                 HomeScreen(
                     viewModel = viewModel,
-                    onProfileClick = { id -> navController.navigate("profile/$id") }
+                    onProfileClick = { id -> navController.navigate("profile/$id") },
+                    navController = navController  // Pass navController here
                 )
             }
             composable(Screen.Favorites.route) {
@@ -58,11 +57,20 @@ fun AppNavigation(viewModel: FreelancerViewModel) {
                     onSave = { navController.popBackStack() }
                 )
             }
-            composable("${Screen.Profile.route}/{freelancerId}") { backStackEntry ->
-                val freelancerId = backStackEntry.arguments?.getString("freelancerId")?.toIntOrNull()
+            composable("profile/{id}") { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("id")?.toIntOrNull()
                 ProfileScreen(
                     viewModel = viewModel,
-                    freelancerId = freelancerId ?: 0, // Default to 0 if null
+                    freelancerId = id,
+                    onEdit = { freelancerId -> navController.navigate("editProfile/$freelancerId") },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable("editProfile/{id}") { backStackEntry ->
+                val id = backStackEntry.arguments?.getString("id")?.toIntOrNull()
+                EditProfileScreen(
+                    freelancerId = id ?: 0,
+                    viewModel = viewModel,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -86,6 +94,7 @@ fun BottomNavBar(navController: NavHostController) {
                 selected = currentRoute == screen.route,
                 onClick = {
                     navController.navigate(screen.route) {
+                        // Ensure navigation stack is reset to the start when navigating
                         popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true
                         }

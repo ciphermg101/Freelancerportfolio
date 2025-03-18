@@ -4,8 +4,9 @@ import androidx.lifecycle.LiveData
 
 class FreelancerRepository(private val freelancerDao: FreelancerDao) {
 
-    val allFreelancers: LiveData<List<FreelancerProfile>> = freelancerDao.getAllFreelancers()
-    val favoriteFreelancers: LiveData<List<FreelancerProfile>> = freelancerDao.getFavoriteFreelancers()
+    // Renamed to match the updated DAO methods and reflect a single freelancer's profiles
+    val allFreelancerProfiles: LiveData<List<FreelancerProfile>> = freelancerDao.getAllFreelancerProfiles()
+    val favoriteFreelancerProfiles: LiveData<List<FreelancerProfile>> = freelancerDao.getFavoriteFreelancerProfiles()
 
     suspend fun insert(profile: FreelancerProfile) {
         freelancerDao.insert(profile)
@@ -19,11 +20,8 @@ class FreelancerRepository(private val freelancerDao: FreelancerDao) {
         freelancerDao.delete(profile)
     }
 
-    fun getFreelancerById(id: Int): LiveData<FreelancerProfile> {
-        return freelancerDao.getFreelancerById(id)
-    }
-
-    fun searchProfiles(query: String): LiveData<List<FreelancerProfile>> {
-        return freelancerDao.searchByRoleOrSkill(query)
+    // Renamed to match the updated method in DAO
+    fun getFreelancerProfileById(id: Int): LiveData<FreelancerProfile> {
+        return freelancerDao.getFreelancerProfileById(id)
     }
 }

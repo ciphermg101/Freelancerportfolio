@@ -17,24 +17,24 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.example.freelancerportfolio.data.FreelancerProfile
 
 @Composable
 fun FreelancerCard(
-    imagePath: String,
-    name: String,
-    description: String,
-    onProfileClick: () -> Unit // Added parameter for navigation click
+    freelancer: FreelancerProfile, // Pass the whole FreelancerProfile object
+    onProfileClick: (FreelancerProfile) -> Unit // Pass the profile on click for navigation
 ) {
-    // Loads the bitmap in the background
-    val bitmap = rememberBitmapFromFile(imagePath)
+    // Load the image from the file system (if imagePath exists in the profile)
+    val bitmap = rememberBitmapFromFile(freelancer.profilePicture ?: "")
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .clickable { onProfileClick() } // Make card clickable
+            .clickable { onProfileClick(freelancer) } // Pass the profile when clicked
     ) {
         Column(modifier = Modifier.background(Color.White)) {
+            // If a valid bitmap is available, display it
             bitmap?.let {
                 Image(
                     bitmap = it.asImageBitmap(),
@@ -44,8 +44,11 @@ fun FreelancerCard(
                         .height(200.dp)
                 )
             }
-            Text(text = name, modifier = Modifier.padding(8.dp))
-            Text(text = description, modifier = Modifier.padding(8.dp))
+            // Freelancer name and role title
+            Text(text = freelancer.name, modifier = Modifier.padding(8.dp))
+            Text(text = freelancer.roleTitle, modifier = Modifier.padding(8.dp))
+            // Freelancer description or summary
+            Text(text = freelancer.summary, modifier = Modifier.padding(8.dp))
         }
     }
 }

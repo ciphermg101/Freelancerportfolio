@@ -1,19 +1,35 @@
 package com.example.freelancerportfolio.ui.screens
 
 import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import coil.compose.rememberAsyncImagePainter
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.remember
 import com.example.freelancerportfolio.R
 import com.example.freelancerportfolio.data.FreelancerProfile
 import com.example.freelancerportfolio.data.FreelancerViewModel
@@ -22,32 +38,44 @@ import com.example.freelancerportfolio.data.FreelancerViewModel
 fun ProfileScreen(
     viewModel: FreelancerViewModel,
     freelancerId: Int?,
+    onEdit: (Int) -> Unit, // Navigate to edit screen
     onBack: () -> Unit
 ) {
-    val freelancerIdInt = freelancerId ?: 0 // Ensure freelancerId is always an Int
-
-    // Observe the freelancer profile safely
-    val freelancer by viewModel
-        .getFreelancerById(freelancerIdInt)
-        .observeAsState(initial = null)
+    val freelancer by viewModel.getFreelancerProfileById(freelancerId ?: 0).observeAsState(initial = null)
 
     val context = LocalContext.current
+    var selectedImageUri by remember { mutableStateOf<String?>(null) }
+
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri: Uri? ->
+            uri?.let {
+                selectedImageUri = it.toString()
+                // Optionally update profile with new image
+                viewModel.updateProfileImage(freelancerId ?: 0, selectedImageUri!!)
+            }
+        }
+    )
+
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Portfolio") },
-            text = { Text("Are you sure you want to delete this portfolio?") },
+            title = { Text("Delete Portfolio", style = MaterialTheme.typography.titleMedium) },
+            text = { Text("Are you sure you want to delete this portfolio? This action cannot be undone.") },
             confirmButton = {
-                TextButton(onClick = {
-                    freelancer?.let {
-                        viewModel.delete(it)
-                        onBack()
+                TextButton(
+                    onClick = {
+                        freelancer?.let {
+                            viewModel.delete(it)
+                            onBack()
+                        }
+                        showDeleteDialog = false
                     }
-                    showDeleteDialog = false
-                }) {
-                    Text("Delete")
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
@@ -58,74 +86,142 @@ fun ProfileScreen(
         )
     }
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        if (freelancer == null) {
-            // If the freelancer is still loading or doesn't exist
-            Text("Portfolio not found", style = MaterialTheme.typography.titleMedium)
-            Button(onClick = onBack) {
-                Text("Back")
-            }
-        } else {
-            // Use let to ensure freelancer is non-null
-            freelancer?.let { profile ->
-                Text(text = profile.roleTitle, style = MaterialTheme.typography.titleLarge)
-                Text(text = profile.name, style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
+    freelancer?.let { profile ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Profile Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Profile Image
+                    ProfileImage(profile.profilePicture ?: selectedImageUri)
 
-                // Display circular image (mock)
-                val imagePainter = rememberAsyncImagePainter(
-                    model = profile.profilePicture ?: R.drawable.ic_launcher_foreground
-                )
+                    // Button to select image
+                    OutlinedButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                        Text("Change Profile Image")
+                    }
 
-                Image(
-                    painter = imagePainter,
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier
-                        .size(100.dp)
-                        .clip(MaterialTheme.shapes.large)
-                )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = profile.name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = profile.roleTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("📍 ${profile.location}", style = MaterialTheme.typography.bodyMedium)
 
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "Email: ${profile.email}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Phone: ${profile.phone}", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Location: ${profile.location}", style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text("Summary:", style = MaterialTheme.typography.titleSmall)
-                Text(profile.summary, style = MaterialTheme.typography.bodyMedium)
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row {
-                    FilledIconButton(
+                    // Favorite status toggle
+                    IconButton(
                         onClick = {
-                            // Share intent only if freelancer is available
-                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, "Check out my portfolio!")
-                                putExtra(Intent.EXTRA_TEXT, buildShareText(profile))
-                            }
-                            context.startActivity(
-                                Intent.createChooser(shareIntent, "Share Portfolio")
-                            )
+                            viewModel.toggleFavorite(profile.id)
                         },
+                        modifier = Modifier.padding(top = 8.dp)
                     ) {
-                        Icon(Icons.Filled.Share, contentDescription = "Share")
+                        Icon(
+                            imageVector = if (profile.isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
+                            contentDescription = if (profile.isFavorite) "Remove from favorites" else "Add to favorites"
+                        )
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    FilledIconButton(
-                        onClick = { showDeleteDialog = true }
-                    ) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Delete")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(onClick = onBack) {
-                    Text("Back to List")
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Contact Information
+            ContactInfo(profile)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Action Buttons
+            Row(horizontalArrangement = Arrangement.Center) {
+                // Edit Profile Button
+                FilledIconButton(
+                    onClick = { onEdit(profile.id) }, // Navigate to Edit screen
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Icon(Icons.Filled.Edit, contentDescription = "Edit Profile")
+                }
+
+                // Share Profile Button
+                FilledIconButton(
+                    onClick = {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_SUBJECT, "Check out my portfolio!")
+                            putExtra(Intent.EXTRA_TEXT, buildShareText(profile))
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share Portfolio"))
+                    },
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Icon(Icons.Filled.Share, contentDescription = "Share")
+                }
+
+                // Delete Profile Button
+                FilledIconButton(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.padding(8.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(Icons.Filled.Delete, contentDescription = "Delete")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Back Button
+            Button(
+                onClick = onBack,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Back to List")
+            }
+        }
+    } ?: Text("Portfolio not found", style = MaterialTheme.typography.headlineSmall)
+}
+
+@Composable
+fun ProfileImage(imagePath: String?) {
+    val painter = rememberAsyncImagePainter(model = imagePath ?: R.drawable.ic_launcher_foreground)
+    Image(
+        painter = painter,
+        contentDescription = "Profile Picture",
+        modifier = Modifier
+            .size(120.dp)
+            .clip(CircleShape)
+            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+    )
+}
+
+@Composable
+fun ContactInfo(profile: FreelancerProfile) {
+    Column(horizontalAlignment = Alignment.Start, modifier = Modifier.padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Email, contentDescription = "Email", tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = profile.email, style = MaterialTheme.typography.bodyMedium)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Phone, contentDescription = "Phone", tint = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = profile.phone, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -136,7 +232,6 @@ private fun buildShareText(profile: FreelancerProfile): String {
         Name: ${profile.name}
         Email: ${profile.email}
         Summary: ${profile.summary}
-        Skills: ${profile.skills.joinToString(", ")}
         
         Contact me if you're interested in hiring!
     """.trimIndent()
