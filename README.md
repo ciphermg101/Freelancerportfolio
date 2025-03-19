@@ -1,11 +1,6 @@
 
-Freelancer Portfolio Manager
+# Freelancer Portfolio Manager
 
-Group Members:
-
-1.	Dancan Karuku		CT206/109484/22
-2.	Emmanuel Kimathi	CT206/109468/22
-3.	Christopher Mbuthia	CT206/109483/22
 
 1. Introduction
 The Freelancer Portfolio Manager is an Android application developed using Jetpack Compose to help freelancers manage multiple professional profiles based on their various roles. The app allows users to create, update, and manage profile details, skills, certifications, social links, and more. It integrates with Room Database for persistent storage and follows Material Design 3 principles for an intuitive user experience.
