@@ -18,10 +18,9 @@ interface FreelancerDao {
     @Query("SELECT * FROM freelancer_profile ORDER BY roleTitle ASC")
     fun getAllFreelancerProfiles(): LiveData<List<FreelancerProfile>>
 
-    @Query("SELECT * FROM freelancer_profile WHERE id = :id")
-    fun getFreelancerProfileById(id: Int): LiveData<FreelancerProfile>
+    @Query("SELECT * FROM freelancer_profile WHERE id = :id LIMIT 1")
+    suspend fun getFreelancerProfileByIdSync(id: Int): FreelancerProfile?
 
     @Query("SELECT * FROM freelancer_profile WHERE isFavorite = 1")
     fun getFavoriteFreelancerProfiles(): LiveData<List<FreelancerProfile>>
 }
-

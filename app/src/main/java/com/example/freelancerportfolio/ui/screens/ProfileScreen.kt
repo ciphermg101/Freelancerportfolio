@@ -3,33 +3,28 @@ package com.example.freelancerportfolio.ui.screens
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.remember
 import com.example.freelancerportfolio.R
 import com.example.freelancerportfolio.data.FreelancerProfile
 import com.example.freelancerportfolio.data.FreelancerViewModel
@@ -38,13 +33,18 @@ import com.example.freelancerportfolio.data.FreelancerViewModel
 fun ProfileScreen(
     viewModel: FreelancerViewModel,
     freelancerId: Int?,
-    onEdit: (Int) -> Unit, // Navigate to edit screen
+    onEdit: (Int) -> Unit,
     onBack: () -> Unit
 ) {
-    val freelancer by viewModel.getFreelancerProfileById(freelancerId ?: 0).observeAsState(initial = null)
-
+    val freelancer by viewModel.getFreelancerProfileById(freelancerId ?: 0).observeAsState()
     val context = LocalContext.current
     var selectedImageUri by remember { mutableStateOf<String?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
+    // Observe profile image updates
+    LaunchedEffect(freelancer?.profilePicture) {
+        selectedImageUri = freelancer?.profilePicture
+    }
 
     // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -52,13 +52,10 @@ fun ProfileScreen(
         onResult = { uri: Uri? ->
             uri?.let {
                 selectedImageUri = it.toString()
-                // Optionally update profile with new image
                 viewModel.updateProfileImage(freelancerId ?: 0, selectedImageUri!!)
             }
         }
     )
-
-    var showDeleteDialog by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -94,7 +91,7 @@ fun ProfileScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Profile Card
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -104,61 +101,40 @@ fun ProfileScreen(
                     modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Profile Image
-                    ProfileImage(profile.profilePicture ?: selectedImageUri)
+                    ProfileImage(imagePath = selectedImageUri)
 
-                    // Button to select image
                     OutlinedButton(onClick = { imagePickerLauncher.launch("image/*") }) {
                         Text("Change Profile Image")
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = profile.name,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = profile.roleTitle,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text(profile.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text(profile.roleTitle, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("📍 ${profile.location}", style = MaterialTheme.typography.bodyMedium)
+                    Text("\uD83D\uDCCD ${profile.location}", style = MaterialTheme.typography.bodyMedium)
 
-                    // Favorite status toggle
+                    // Favorite toggle
                     IconButton(
-                        onClick = {
-                            viewModel.toggleFavorite(profile.id)
-                        },
+                        onClick = { viewModel.toggleFavorite(profile.id) },
                         modifier = Modifier.padding(top = 8.dp)
                     ) {
                         Icon(
-                            imageVector = if (profile.isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
-                            contentDescription = if (profile.isFavorite) "Remove from favorites" else "Add to favorites"
+                            imageVector = if (profile.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = if (profile.isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (profile.isFavorite) Color.Red else Color.Gray
                         )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Contact Information
             ContactInfo(profile)
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Action Buttons
             Row(horizontalArrangement = Arrangement.Center) {
-                // Edit Profile Button
-                FilledIconButton(
-                    onClick = { onEdit(profile.id) }, // Navigate to Edit screen
-                    modifier = Modifier.padding(8.dp)
-                ) {
+                FilledIconButton(onClick = { onEdit(profile.id) }, modifier = Modifier.padding(8.dp)) {
                     Icon(Icons.Filled.Edit, contentDescription = "Edit Profile")
                 }
-
-                // Share Profile Button
                 FilledIconButton(
                     onClick = {
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
@@ -172,8 +148,6 @@ fun ProfileScreen(
                 ) {
                     Icon(Icons.Filled.Share, contentDescription = "Share")
                 }
-
-                // Delete Profile Button
                 FilledIconButton(
                     onClick = { showDeleteDialog = true },
                     modifier = Modifier.padding(8.dp),
@@ -184,16 +158,11 @@ fun ProfileScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Back Button
-            Button(
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
                 Text("Back to List")
             }
         }
-    } ?: Text("Portfolio not found", style = MaterialTheme.typography.headlineSmall)
+    }
 }
 
 @Composable
@@ -226,13 +195,10 @@ fun ContactInfo(profile: FreelancerProfile) {
     }
 }
 
-private fun buildShareText(profile: FreelancerProfile): String {
-    return """
+private fun buildShareText(profile: FreelancerProfile): String =
+    """
         Check out my portfolio for ${profile.roleTitle}:
         Name: ${profile.name}
         Email: ${profile.email}
         Summary: ${profile.summary}
-        
-        Contact me if you're interested in hiring!
     """.trimIndent()
-}

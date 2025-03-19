@@ -56,6 +56,23 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            Text(
+                text = "Welcome to Freelancer Profile Manager",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier
+                    .padding(8.dp)
+                    .align(Alignment.CenterHorizontally),
+                color = Color.Gray
+            )
+
+            Text(
+                text = "Freelancer Profiles",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+
             if (allFreelancers.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),

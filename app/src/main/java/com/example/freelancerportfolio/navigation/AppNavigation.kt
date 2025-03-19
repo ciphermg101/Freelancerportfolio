@@ -28,51 +28,56 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector,
 @Composable
 fun AppNavigation(viewModel: FreelancerViewModel, userPreferences: UserPreferences) {
     val navController = rememberNavController()
+    var showSplash by remember { mutableStateOf(true) } // Track splash screen state
 
-    Scaffold(
-        bottomBar = { BottomNavBar(navController = navController) }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(Screen.Home.route) {
-                HomeScreen(
-                    viewModel = viewModel,
-                    navController = navController,
-                    userPreferences = userPreferences, // ✅ Pass userPreferences
-                    onProfileClick = { id -> navController.navigate("profile/$id") }
-                )
-            }
-            composable(Screen.Favorites.route) {
-                FavoritesScreen(
-                    viewModel = viewModel,
-                    onProfileClick = { id -> navController.navigate("profile/$id") }
-                )
-            }
-            composable(Screen.Form.route) {
-                FreelancerFormScreen(
-                    viewModel = viewModel,
-                    onSave = { navController.popBackStack() }
-                )
-            }
-            composable("profile/{id}") { backStackEntry ->
-                val id = backStackEntry.arguments?.getString("id")?.toIntOrNull()
-                ProfileScreen(
-                    viewModel = viewModel,
-                    freelancerId = id,
-                    onEdit = { freelancerId -> navController.navigate("editProfile/$freelancerId") },
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable("editProfile/{id}") { backStackEntry ->
-                val id = backStackEntry.arguments?.getString("id")?.toIntOrNull()
-                EditProfileScreen(
-                    freelancerId = id ?: 0,
-                    viewModel = viewModel,
-                    onBack = { navController.popBackStack() }
-                )
+    if (showSplash) {
+        SplashScreen { showSplash = false } // Show splash, then transition to main UI
+    } else {
+        Scaffold(
+            bottomBar = { BottomNavBar(navController = navController) }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Home.route,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable(Screen.Home.route) {
+                    HomeScreen(
+                        viewModel = viewModel,
+                        navController = navController,
+                        userPreferences = userPreferences,
+                        onProfileClick = { id -> navController.navigate("profile/$id") }
+                    )
+                }
+                composable(Screen.Favorites.route) {
+                    FavoritesScreen(
+                        viewModel = viewModel,
+                        onProfileClick = { id -> navController.navigate("profile/$id") }
+                    )
+                }
+                composable(Screen.Form.route) {
+                    FreelancerFormScreen(
+                        viewModel = viewModel,
+                        onSave = { navController.popBackStack() }
+                    )
+                }
+                composable("profile/{id}") { backStackEntry ->
+                    val id = backStackEntry.arguments?.getString("id")?.toIntOrNull()
+                    ProfileScreen(
+                        viewModel = viewModel,
+                        freelancerId = id,
+                        onEdit = { freelancerId -> navController.navigate("editProfile/$freelancerId") },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("editProfile/{id}") { backStackEntry ->
+                    val id = backStackEntry.arguments?.getString("id")?.toIntOrNull()
+                    EditProfileScreen(
+                        freelancerId = id ?: 0,
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }
@@ -80,7 +85,7 @@ fun AppNavigation(viewModel: FreelancerViewModel, userPreferences: UserPreferenc
 
 @Composable
 fun BottomNavBar(navController: NavHostController) {
-    val items = listOf(Screen.Home, Screen.Favorites, Screen.Form)
+    val items = listOf(Screen.Home, Screen.Favorites)
 
     NavigationBar {
         val currentBackStackEntry by navController.currentBackStackEntryAsState()

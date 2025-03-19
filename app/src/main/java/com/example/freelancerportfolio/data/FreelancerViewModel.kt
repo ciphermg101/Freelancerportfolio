@@ -1,9 +1,7 @@
 package com.example.freelancerportfolio.data
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import kotlinx.coroutines.launch
 
 class FreelancerViewModel(application: Application) : AndroidViewModel(application) {
@@ -11,6 +9,7 @@ class FreelancerViewModel(application: Application) : AndroidViewModel(applicati
     private val repository: FreelancerRepository
     val allFreelancerProfiles: LiveData<List<FreelancerProfile>>
     val favoriteFreelancerProfiles: LiveData<List<FreelancerProfile>>
+    private val _selectedFreelancer = MutableLiveData<FreelancerProfile>()
 
     init {
         val dao = FreelancerDatabase.getDatabase(application).freelancerDao()
@@ -36,21 +35,24 @@ class FreelancerViewModel(application: Application) : AndroidViewModel(applicati
 
     // Update the profile picture of a freelancer profile
     fun updateProfileImage(id: Int, newImageUri: String) = viewModelScope.launch {
-        val currentProfile = repository.getFreelancerProfileById(id).value
-        currentProfile?.let {
+        val freelancer = repository.getFreelancerProfileByIdSync(id)
+        freelancer?.let {
             val updatedProfile = it.copy(profilePicture = newImageUri)
             repository.update(updatedProfile)
+
+            // Force LiveData update
+            _selectedFreelancer.postValue(updatedProfile)
         }
     }
 
-    // Get a freelancer profile by ID
-    fun getFreelancerProfileById(id: Int): LiveData<FreelancerProfile> {
+    // Get a freelancer profile by ID (LiveData)
+    fun getFreelancerProfileById(id: Int): LiveData<FreelancerProfile?> {
         return repository.getFreelancerProfileById(id)
     }
 
     // Update certifications in the freelancer profile
     fun updateCertifications(id: Int, newCertifications: List<Certification>) = viewModelScope.launch {
-        val freelancer = repository.getFreelancerProfileById(id).value
+        val freelancer = repository.getFreelancerProfileByIdSync(id)
         freelancer?.let {
             val updatedProfile = it.copy(certifications = newCertifications)
             repository.update(updatedProfile)
@@ -59,7 +61,7 @@ class FreelancerViewModel(application: Application) : AndroidViewModel(applicati
 
     // Update languages in the freelancer profile
     fun updateLanguages(id: Int, newLanguages: List<String>) = viewModelScope.launch {
-        val freelancer = repository.getFreelancerProfileById(id).value
+        val freelancer = repository.getFreelancerProfileByIdSync(id)
         freelancer?.let {
             val updatedProfile = it.copy(languages = newLanguages)
             repository.update(updatedProfile)
@@ -68,7 +70,7 @@ class FreelancerViewModel(application: Application) : AndroidViewModel(applicati
 
     // Update social links in the freelancer profile
     fun updateSocialLinks(id: Int, newLinks: List<String>) = viewModelScope.launch {
-        val freelancer = repository.getFreelancerProfileById(id).value
+        val freelancer = repository.getFreelancerProfileByIdSync(id)
         freelancer?.let {
             val updatedProfile = it.copy(socialLinks = newLinks)
             repository.update(updatedProfile)
@@ -77,7 +79,7 @@ class FreelancerViewModel(application: Application) : AndroidViewModel(applicati
 
     // Update portfolio links in the freelancer profile
     fun updatePortfolioLinks(id: Int, newLinks: List<String>) = viewModelScope.launch {
-        val freelancer = repository.getFreelancerProfileById(id).value
+        val freelancer = repository.getFreelancerProfileByIdSync(id)
         freelancer?.let {
             val updatedProfile = it.copy(portfolioLinks = newLinks)
             repository.update(updatedProfile)
@@ -86,10 +88,13 @@ class FreelancerViewModel(application: Application) : AndroidViewModel(applicati
 
     // Toggle the 'isFavorite' status of a freelancer profile
     fun toggleFavorite(id: Int) = viewModelScope.launch {
-        val freelancer = repository.getFreelancerProfileById(id).value
+        val freelancer = repository.getFreelancerProfileByIdSync(id)
         freelancer?.let {
             val updatedProfile = it.copy(isFavorite = !it.isFavorite)
             repository.update(updatedProfile)
+
+            // Force LiveData update
+            _selectedFreelancer.postValue(updatedProfile)
         }
     }
 
@@ -106,7 +111,8 @@ class FreelancerViewModel(application: Application) : AndroidViewModel(applicati
         certifications: List<Certification>,
         languages: List<String>,
         socialLinks: List<String>,
-        portfolioLinks: List<String>
+        portfolioLinks: List<String>,
+        profilePicture: String? = null
     ) {
         val newProfile = FreelancerProfile(
             name = name,
@@ -118,19 +124,20 @@ class FreelancerViewModel(application: Application) : AndroidViewModel(applicati
             availability = availability,
             skills = skills,
             certifications = certifications,
-            experience = emptyList(), // Assuming empty experience and education lists for now
+            experience = emptyList(),
             education = emptyList(),
             projects = emptyList(),
             testimonials = emptyList(),
             languages = languages,
-            location = "Unknown", // Default location value
+            location = "Unknown",
             socialLinks = socialLinks,
             portfolioLinks = portfolioLinks,
-            isFavorite = false
+            isFavorite = false,
+            profilePicture = profilePicture
         )
 
         viewModelScope.launch {
-            insert(newProfile) // Save the profile to the repository
+            insert(newProfile)
         }
     }
 }

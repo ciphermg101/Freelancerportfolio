@@ -1,10 +1,10 @@
 package com.example.freelancerportfolio.data
 
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.liveData
 
 class FreelancerRepository(private val freelancerDao: FreelancerDao) {
 
-    // Renamed to match the updated DAO methods and reflect a single freelancer's profiles
     val allFreelancerProfiles: LiveData<List<FreelancerProfile>> = freelancerDao.getAllFreelancerProfiles()
     val favoriteFreelancerProfiles: LiveData<List<FreelancerProfile>> = freelancerDao.getFavoriteFreelancerProfiles()
 
@@ -20,8 +20,11 @@ class FreelancerRepository(private val freelancerDao: FreelancerDao) {
         freelancerDao.delete(profile)
     }
 
-    // Renamed to match the updated method in DAO
-    fun getFreelancerProfileById(id: Int): LiveData<FreelancerProfile> {
-        return freelancerDao.getFreelancerProfileById(id)
+    suspend fun getFreelancerProfileByIdSync(id: Int): FreelancerProfile? {
+        return freelancerDao.getFreelancerProfileByIdSync(id)
+    }
+
+    fun getFreelancerProfileById(id: Int): LiveData<FreelancerProfile?> = liveData {
+        emit(freelancerDao.getFreelancerProfileByIdSync(id))
     }
 }
