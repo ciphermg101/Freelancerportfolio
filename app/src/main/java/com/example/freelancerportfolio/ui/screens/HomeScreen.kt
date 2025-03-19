@@ -7,67 +7,100 @@ import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.freelancerportfolio.data.FreelancerViewModel
 import com.example.freelancerportfolio.ui.components.FreelancerCard
 import androidx.compose.runtime.livedata.observeAsState
+import com.example.freelancerportfolio.data.UserPreferences
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: FreelancerViewModel,
-    navController: NavController, // Add the NavController to this function
+    navController: NavController,
+    userPreferences: UserPreferences,
     onProfileClick: (Int) -> Unit
 ) {
-    // Observe all freelancer profiles from ViewModel using LiveData
-    val allFreelancers by viewModel.allFreelancerProfiles.observeAsState(emptyList()) // Observe LiveData
+    val allFreelancers by viewModel.allFreelancerProfiles.observeAsState(emptyList())
+    val isDarkMode by userPreferences.getDarkMode.collectAsState(initial = false)
 
-    // Column to display freelancer profiles
-    Box(modifier = Modifier.fillMaxSize()) {
-        // LazyColumn to display all freelancer profiles with a nice top margin
-        LazyColumn(modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 16.dp, bottom = 70.dp) // Added top padding for a cleaner look
-        ) {
-            items(allFreelancers) { freelancer ->
-                // Use the FreelancerCard component to display the freelancer profile
-                FreelancerCard(
-                    freelancer = freelancer,  // Pass the whole FreelancerProfile object
-                    onProfileClick = { onProfileClick(freelancer.id) } // Pass the freelancer ID when clicked
-                )
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Freelancer Profiles", style = MaterialTheme.typography.titleLarge) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                actions = {
+                    ThemeToggle(userPreferences, isDarkMode)
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { navController.navigate("form") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                elevation = FloatingActionButtonDefaults.elevation(6.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Profile", tint = Color.White)
             }
         }
-
-        // Floating action button to add a new profile, with better styling
-        FloatingActionButton(
-            onClick = {
-                // Navigate to the FreelancerFormScreen when clicked
-                navController.navigate("form")
-            },
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .padding(16.dp)
-                .align(Alignment.BottomEnd), // Position it at the bottom-right
-            containerColor = MaterialTheme.colorScheme.primary, // Customize the color
-            elevation = FloatingActionButtonDefaults.elevation(6.dp) // Add shadow for elevation
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add Profile",
-                tint = Color.White // Ensure the icon is visible against the button
-            )
+            if (allFreelancers.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No profiles found. Click + to add one.", style = MaterialTheme.typography.bodyMedium)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(allFreelancers) { freelancer ->
+                        FreelancerCard(
+                            freelancer = freelancer,
+                            onProfileClick = { onProfileClick(freelancer.id) }
+                        )
+                    }
+                }
+            }
         }
+    }
+}
 
-        // Optional: Add a title or section header to make the screen feel more structured
-        Text(
-            text = "Freelancer Profiles",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier
-                .padding(16.dp)
-                .align(Alignment.TopStart), // Position at the top-left
-            color = MaterialTheme.colorScheme.onBackground // Style based on theme
+@Composable
+fun ThemeToggle(userPreferences: UserPreferences, isDarkMode: Boolean) {
+    val coroutineScope = rememberCoroutineScope()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = "Dark Mode")
+        Switch(
+            checked = isDarkMode,
+            onCheckedChange = { enabled ->
+                coroutineScope.launch {
+                    userPreferences.setDarkMode(enabled)
+                }
+            }
         )
     }
 }

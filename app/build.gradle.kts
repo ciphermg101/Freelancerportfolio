@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.datastore.preferences)
 
     // Compose (managed by BOM)
     implementation(platform(libs.androidx.compose.bom))
@@ -65,6 +66,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.runtime.livedata)
+    implementation(libs.accompanist.systemuicontroller)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)

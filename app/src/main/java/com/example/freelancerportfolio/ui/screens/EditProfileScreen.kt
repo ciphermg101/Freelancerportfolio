@@ -1,187 +1,164 @@
 package com.example.freelancerportfolio.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.runtime.livedata.observeAsState // Add this import
+import androidx.compose.runtime.livedata.observeAsState
 import com.example.freelancerportfolio.data.Certification
 import com.example.freelancerportfolio.data.FreelancerViewModel
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class) // Opt-in to experimental Material3 API if needed
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(
     freelancerId: Int,
     viewModel: FreelancerViewModel = viewModel(),
     onBack: () -> Unit
 ) {
-    // Observe the freelancer profile using LiveData
-    val freelancer by viewModel.getFreelancerProfileById(freelancerId).observeAsState(initial = null)
+    val freelancer by viewModel.getFreelancerProfileById(freelancerId).observeAsState()
+    var state by remember { mutableStateOf(freelancer) }
 
-    // Fields for editing the freelancer's profile
-    var name by remember { mutableStateOf("") }
-    var roleTitle by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var phone by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var summary by remember { mutableStateOf("") }
-    var skills by remember { mutableStateOf("") }
-    var certifications by remember { mutableStateOf("") }
-    var languages by remember { mutableStateOf("") }
-    var socialLinks by remember { mutableStateOf("") }
-    var portfolioLinks by remember { mutableStateOf("") }
-    var hourlyRate by remember { mutableDoubleStateOf(0.0) } // Use mutableDoubleStateOf for hourly rate
-    var availability by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // Pre-fill fields when the profile is loaded
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var showCancelDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(freelancer) {
-        freelancer?.let {
-            name = it.name
-            roleTitle = it.roleTitle
-            email = it.email
-            phone = it.phone
-            location = it.location
-            summary = it.summary
-            skills = it.skills.joinToString(", ")
-            certifications = it.certifications.joinToString(", ") { cert -> cert.title }
-            languages = it.languages.joinToString(", ")
-            socialLinks = it.socialLinks.joinToString(", ")
-            portfolioLinks = it.portfolioLinks.joinToString(", ")
-            hourlyRate = it.hourlyRate
-            availability = it.availability
-        }
+        state = freelancer
     }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Edit Profile") }
+                title = { Text("Edit Profile") },
+                navigationIcon = {
+                    IconButton(onClick = { showCancelDialog = true }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
             )
-        }
+        },
+        bottomBar = {
+            BottomAppBar {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    TextButton(onClick = { showCancelDialog = true }) {
+                        Text("Cancel")
+                    }
+                    Button(onClick = { showSaveDialog = true }) {
+                        Text("Save Changes")
+                    }
+                }
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
                 .padding(16.dp)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = roleTitle,
-                onValueChange = { roleTitle = it },
-                label = { Text("Role Title") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = phone,
-                onValueChange = { phone = it },
-                label = { Text("Phone") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = location,
-                onValueChange = { location = it },
-                label = { Text("Location") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = summary,
-                onValueChange = { summary = it },
-                label = { Text("Summary") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // Add fields for skills, certifications, languages, social links, and portfolio links
-            OutlinedTextField(
-                value = skills,
-                onValueChange = { skills = it },
-                label = { Text("Skills") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = certifications,
-                onValueChange = { certifications = it },
-                label = { Text("Certifications") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = languages,
-                onValueChange = { languages = it },
-                label = { Text("Languages") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = socialLinks,
-                onValueChange = { socialLinks = it },
-                label = { Text("Social Links") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = portfolioLinks,
-                onValueChange = { portfolioLinks = it },
-                label = { Text("Portfolio Links") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = onBack,
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.secondary)
-                ) {
-                    Text("Cancel")
+        )
+        {
+            state?.let { profile ->
+                InputField("Name", profile.name) { state = profile.copy(name = it) }
+                InputField("Role Title", profile.roleTitle) { state = profile.copy(roleTitle = it) }
+                InputField("Email", profile.email) { state = profile.copy(email = it) }
+                InputField("Phone", profile.phone) { state = profile.copy(phone = it) }
+                InputField("Location", profile.location) { state = profile.copy(location = it) }
+                InputField("Summary", profile.summary) { state = profile.copy(summary = it) }
+                InputField("Skills", profile.skills.joinToString(", ")) {
+                    state = profile.copy(skills = it.split(", ").map(String::trim))
                 }
-
-                Button(
-                    onClick = {
-                        freelancer?.let {
-                            val updatedProfile = it.copy(
-                                name = name,
-                                roleTitle = roleTitle,
-                                email = email,
-                                phone = phone,
-                                location = location,
-                                summary = summary,
-                                skills = skills.split(", ").map { it.trim() },
-                                certifications = certifications.split(", ").map { Certification(it, "", 0) },
-                                languages = languages.split(", ").map { it.trim() },
-                                socialLinks = socialLinks.split(", ").map { it.trim() },
-                                portfolioLinks = portfolioLinks.split(", ").map { it.trim() },
-                                hourlyRate = hourlyRate,
-                                availability = availability
-                            )
-                            viewModel.update(updatedProfile)
-                            onBack()
-                        }
-                    }
-                ) {
-                    Text("Save Changes")
+                InputField("Certifications", profile.certifications.joinToString(", ") { it.title }) {
+                    state = profile.copy(certifications = it.split(", ").map { cert -> Certification(cert, "", 0) })
+                }
+                InputField("Languages", profile.languages.joinToString(", ")) {
+                    state = profile.copy(languages = it.split(", ").map(String::trim))
+                }
+                InputField("Social Links", profile.socialLinks.joinToString(", ")) {
+                    state = profile.copy(socialLinks = it.split(", ").map(String::trim))
+                }
+                InputField("Portfolio Links", profile.portfolioLinks.joinToString(", ")) {
+                    state = profile.copy(portfolioLinks = it.split(", ").map(String::trim))
                 }
             }
         }
     }
+
+    // Save Confirmation Dialog
+    if (showSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveDialog = false },
+            title = { Text("Confirm Save") },
+            text = { Text("Are you sure you want to save your changes?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        state?.let { updatedProfile ->
+                            viewModel.update(updatedProfile)
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Profile updated successfully")
+                            }
+                        }
+                        showSaveDialog = false
+                        onBack()
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSaveDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Cancel Confirmation Dialog
+    if (showCancelDialog) {
+        AlertDialog(
+            onDismissRequest = { showCancelDialog = false },
+            title = { Text("Discard Changes?") },
+            text = { Text("Any unsaved changes will be lost. Are you sure?") },
+            confirmButton = {
+                Button(onClick = onBack) {
+                    Text("Yes, Discard")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCancelDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun InputField(label: String, value: String, onValueChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    )
 }

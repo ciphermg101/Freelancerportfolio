@@ -4,14 +4,14 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Card
-import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
@@ -21,44 +21,58 @@ import com.example.freelancerportfolio.data.FreelancerProfile
 
 @Composable
 fun FreelancerCard(
-    freelancer: FreelancerProfile, // Pass the whole FreelancerProfile object
-    onProfileClick: (FreelancerProfile) -> Unit // Pass the profile on click for navigation
+    freelancer: FreelancerProfile,
+    onProfileClick: (Int) -> Unit
 ) {
-    // Load the image from the file system (if imagePath exists in the profile)
-    val bitmap = rememberBitmapFromFile(freelancer.profilePicture ?: "")
+    val bitmap = rememberBitmapFromFile(freelancer.profilePicture)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
-            .clickable { onProfileClick(freelancer) } // Pass the profile when clicked
+            .padding(12.dp)
+            .clickable { onProfileClick(freelancer.id) },
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(6.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
-        Column(modifier = Modifier.background(Color.White)) {
-            // If a valid bitmap is available, display it
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             bitmap?.let {
                 Image(
                     bitmap = it.asImageBitmap(),
                     contentDescription = "Freelancer Image",
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(50)) // Circular image
                 )
             }
-            // Freelancer name and role title
-            Text(text = freelancer.name, modifier = Modifier.padding(8.dp))
-            Text(text = freelancer.roleTitle, modifier = Modifier.padding(8.dp))
-            // Freelancer description or summary
-            Text(text = freelancer.summary, modifier = Modifier.padding(8.dp))
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column {
+                Text(freelancer.name, style = MaterialTheme.typography.titleMedium)
+                Text(freelancer.roleTitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = freelancer.summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2
+                )
+            }
         }
     }
 }
 
 @Composable
-fun rememberBitmapFromFile(filePath: String): Bitmap? {
+fun rememberBitmapFromFile(filePath: String?): Bitmap? {
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
 
     LaunchedEffect(filePath) {
-        bitmap = loadBitmapFromFile(filePath)
+        filePath?.let {
+            bitmap = loadBitmapFromFile(it)
+        }
     }
     return bitmap
 }
@@ -67,12 +81,8 @@ suspend fun loadBitmapFromFile(filePath: String): Bitmap? {
     return withContext(Dispatchers.IO) {
         try {
             val file = File(filePath)
-            if (file.exists()) {
-                BitmapFactory.decodeFile(filePath)
-            } else {
-                Log.e("FreelancerCard", "File not found: $filePath")
-                null
-            }
+            if (file.exists()) BitmapFactory.decodeFile(filePath)
+            else null.also { Log.e("FreelancerCard", "File not found: $filePath") }
         } catch (e: Exception) {
             Log.e("FreelancerCard", "Error loading image", e)
             null

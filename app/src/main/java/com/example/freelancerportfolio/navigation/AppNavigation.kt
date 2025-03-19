@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.freelancerportfolio.data.FreelancerViewModel
+import com.example.freelancerportfolio.data.UserPreferences
 import com.example.freelancerportfolio.ui.screens.*
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector, val iconOutlined: ImageVector) {
@@ -25,13 +26,11 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector,
 }
 
 @Composable
-fun AppNavigation(viewModel: FreelancerViewModel) {
+fun AppNavigation(viewModel: FreelancerViewModel, userPreferences: UserPreferences) {
     val navController = rememberNavController()
 
     Scaffold(
-        bottomBar = {
-            BottomNavBar(navController = navController) // Ensure navController is passed to BottomNavBar
-        }
+        bottomBar = { BottomNavBar(navController = navController) }
     ) { innerPadding ->
         NavHost(
             navController = navController,
@@ -41,8 +40,9 @@ fun AppNavigation(viewModel: FreelancerViewModel) {
             composable(Screen.Home.route) {
                 HomeScreen(
                     viewModel = viewModel,
-                    onProfileClick = { id -> navController.navigate("profile/$id") },
-                    navController = navController  // Pass navController here
+                    navController = navController,
+                    userPreferences = userPreferences, // ✅ Pass userPreferences
+                    onProfileClick = { id -> navController.navigate("profile/$id") }
                 )
             }
             composable(Screen.Favorites.route) {
@@ -80,11 +80,8 @@ fun AppNavigation(viewModel: FreelancerViewModel) {
 
 @Composable
 fun BottomNavBar(navController: NavHostController) {
-    val items = listOf(
-        Screen.Home,
-        Screen.Favorites,
-        Screen.Form,
-    )
+    val items = listOf(Screen.Home, Screen.Favorites, Screen.Form)
+
     NavigationBar {
         val currentBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = currentBackStackEntry?.destination?.route
@@ -94,10 +91,7 @@ fun BottomNavBar(navController: NavHostController) {
                 selected = currentRoute == screen.route,
                 onClick = {
                     navController.navigate(screen.route) {
-                        // Ensure navigation stack is reset to the start when navigating
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }
